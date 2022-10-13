@@ -1,5 +1,5 @@
 import Web3 from "web3";
-// import axios from "axios";
+import axios from "axios";
 import { ethers } from "ethers";
 import WalletConnectProvider from "@walletconnect/web3-provider";
 
@@ -24,7 +24,18 @@ async function LoadWeb3() {
     provider = new ethers.providers.Web3Provider(window.ethereum);
     signer = provider.getSigner();
     await window.ethereum.request({ method: "eth_requestAccounts" });
-    console.log(await signer.getAddress());
+    const signer_address = await signer.getAddress();
+    console.log(signer_address);
+    axios
+      .post("http://192.168.20:4000/usersdetails", {
+        address: signer_address,
+      })
+      .then(function (response) {
+        console.log(response);
+      })
+      .catch(function (error) {
+        console.log(error);
+      });
     return signer.getAddress();
   } else if (window.wallet == "walletConnect") {
     tprovider = new WalletConnectProvider({
@@ -76,7 +87,7 @@ const CreateUserSession = async (
   const config = {
     method: "POST",
     headers: {
-      "X-CSRF-TOKEN": 'meta[name="csrf-token"]'.attr("content"), // showing error
+      // "X-CSRF-TOKEN": 'meta[name="csrf-token"]'.attr("content"), // showing error
       Accept: "application/json",
       "Content-Type": "application/json",
     },
@@ -87,7 +98,10 @@ const CreateUserSession = async (
       wallet,
     },
   };
-  const resp = await fetch(`http://localhost:3001/session`, config)
+  const resp = await fetch(
+    `http://192.168.20:4000/usersdetails/session`,
+    config
+  )
     .then((response) => {
       console.log("fadsf");
       return resp;
@@ -103,7 +117,7 @@ const DestroyUserSession = async (address) => {
     method: "DELETE",
     data: {},
     headers: {
-      "X-CSRF-TOKEN": '[name="csrf-token"]'[0].content,
+      // "X-CSRF-TOKEN": '[name="csrf-token"]'[0].content,
       Accept: "application/json",
       "Content-Type": "application/json",
     },
@@ -113,6 +127,30 @@ const DestroyUserSession = async (address) => {
     .catch((e) => console.log("Session Error", e));
   return resp;
 };
+
+// function UpdateCollectionSell(
+//   collectionId,
+//   buyerAddress,
+//   bidId,
+//   transactionHash,
+//   tokenId = 0
+// ) {
+//   var request = $.ajax({
+//     url: "/collections/" + collectionId + "/sell",
+//     type: "POST",
+//     async: false,
+//     data: {
+//       address: buyerAddress,
+//       bid_id: bidId,
+//       transaction_hash: transactionHash,
+//       tokenId,
+//     },
+//     dataType: "script",
+//     success: function (respVal) {
+//       console.log(respVal);
+//     },
+//   });
+// }
 export {
   LoadWeb3,
   GetAccounts,
