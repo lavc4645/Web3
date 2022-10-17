@@ -3,6 +3,13 @@ import Web3 from "web3";
 import { ethers } from "ethers";
 import WalletConnectProvider from "@walletconnect/web3-provider";
 import { isCompositeComponent } from "react-dom/test-utils";
+const tokenURIPrefix = "https://gateway.pinata.cloud/ipfs/";
+const transferProxyContractAddress =
+  "0x1E75299b396350bf88d3750B3d4E0a894a3cEc5F";
+const wethAddress = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6";
+const tradeContractAddress = "0x9FDedd2608Aa7C9B4B22C91cB39318AA533f0EE8";
+const tradeProxyContractAddress = "0xBa38865f3380539A43d03BcB02eb541bBb913fD9";
+// const sessionAddress =
 
 const rpc = "https://goerli.infura.io/v3/3e19c57faceb42c5a67bd39c08258898";
 
@@ -156,6 +163,8 @@ const DestroyUserSession = async (address) => {
 //     });
 // }
 
+
+/** Storing the metamask address to database in users table */
 const LoadAddress = async () => {
   let signer_address = await LoadWeb3();
   console.log("Signer", signer_address);
@@ -1192,6 +1201,156 @@ const LoadTransferProxyContract = async () => {
   );
 };
 
+/** Checking the contract address of current nft is old deprecated tradeproxycontract
+ * line: 1082  //web3.js
+ */
+// const CheckDepricatedStatus = async () => {
+//   var contractAddress =
+// }
+
+window.getContract = async function getContract(
+  contractAddress,
+  type,
+  shared = true
+) {
+  console.log(contractAddress, type, shared);
+  var res = getContractABIAndBytecode(contractAddress, type, shared);
+  var proname = window.wallet == "walletConnect" ? window.provider : provider;
+  var contractObj = new ethers.Contract(
+    contractAddress,
+    res["compiled_contract_details"]["abi"],
+    proname
+  );
+  console.log(contractObj);
+  return contractObj;
+};
+
+window.createCollectible721 = async function createCollectible721(
+  contractAddress,
+  tokenURI,
+  royalityFee,
+  collectionId,
+  sharedCollection
+) {
+  try {
+    console.log("enter createCollectible721");
+    var account = getCurrentAccount();
+    console.log(account, contractAddress, "nft721", sharedCollection);
+    const contract721 = await fetchContract(
+      contractAddress,
+      "nft721",
+      sharedCollection
+    );
+    var gasPrices = await gasPrice();
+    var txn;
+    console.log(sharedCollection);
+    if (sharedCollection) {
+      console.log("HI");
+      var sign = await SignMetadataHash(collectionId, contractAddress);
+      await SaveContractNonceValue(collectionId, sign);
+      var signStruct = splitSign(sign["sign"], sign["nonce"]);
+      txn = await contract721.createCollectible(
+        tokenURI,
+        royalityFee,
+        signStruct,
+        {
+          gasLimit: 516883,
+          gasPrice: String(gasPrices),
+        }
+      );
+    } else {
+      txn = await contract721.createCollectible(tokenURI, royaltyFee, {
+        gasLimit: 516883,
+        gasPrice: String(gasPrices),
+      });
+    }
+    var tx = await txn.wait();
+    //var tokenId = parseInt(txn.logs[1].topics[1]);
+    var tokenId = parseInt(tx.events[0].topics[tx.events[0].topics.length - 1]);
+    console.log(tokenId);
+    await UpdateTokenId(tokenId, collectionId, tx.transactionHash);
+    return window.collectionMintSuccess(collectionId);
+  } catch (err) {
+    console.log(err);
+    return window.collectionMintFailed(err["message"]);
+  }
+};
+
+
+window.createCollectible1155 = async function createCollectible1155(
+  contractAddress,
+  supply,
+  tokenURI,
+  royalityFee,
+  collectionId,
+  sharedCollection
+) {
+  try{
+    console.log("enter createCollectible1155");
+    var account = getCurrentAccount();
+    console.log(account, contractAddress, "nft1155", sharedCollection);
+    const contract1155 = await fetchContract(
+      contractAddress,
+      "nft1155",
+      sharedCollection
+    );
+    var gasPrices = await gasPrice();
+    var txn;
+    if (sharedCollection) {
+      var sign = await signMetadataHash(collectionId, contractAddress);
+      await saveContractNonceValue(collectionId, sign);
+      var signStruct = splitSign(sign["sign"], sign["nonce"]);
+      txn = await contract1155.mint(tokenURI, supply, royaltyFee, signStruct, {
+        gasLimit: 516883,
+        gasPrice: String(gasPrices),
+      });
+    } else {
+      txn = await contract1155.mint(tokenURI, royaltyFee, supply, {
+        gasLimit: 516883,
+        gasPrice: String(gasPrices),
+      });
+    }
+    console.log(txn);
+    var tx = await txn.wait();
+    var tokenId = parseInt(tx.events[0].data.slice(0, 66));
+    await updateTokenId(tokenId, collectionId, tx.transactionHash);
+    return window.collectionMintSuccess(collectionId);
+  } catch (err) {
+    console.error(err);
+    return window.collectionMintFailed(err["message"]);
+  }
+}
+
+
+window.deployContract = async function deployContract(
+   abi,
+  bytecode,
+  name,
+  symbol,
+  contractType,
+  collectionId,
+  attachment,
+  description,
+  cover
+) {
+  let contractDeploy;
+  var contractNFT;
+  let contractAddress;
+  try {
+    console.log("enter deployContract");
+    if(window.wallet == "walletConnect") {
+      var sign = window.provider.getSigner();
+    } else {
+      var sign = provider.getSigner()
+    }
+    if (contractType == "nft721") {
+      console.log(factoryContractAddressFor721, contractType)
+    }
+  }catch (err) {
+    console.error(err);
+    window.contractDeployFailed(err["message"]);
+  }
+}
 export {
   LoadWeb3,
   GetAccounts,
