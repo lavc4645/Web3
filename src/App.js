@@ -36,12 +36,12 @@ function App() {
       <button className="button" onClick={() => LoadAddress()}>
         store Add
       </button>
-      <button className="button" onClick={() => UpdateCollectionSell()}>
+      {/* <button className="button" onClick={() => UpdateCollectionSell()}>
         UpdateCollectionSell
       </button>
       <button className="button" onClick={() => UpdateTokenId()}>
         UpdateTokenId
-      </button>
+      </button> */}
     </div>
   );
 }
